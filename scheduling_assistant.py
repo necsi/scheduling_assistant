@@ -5,6 +5,7 @@ from ortools.sat.python.cp_model import Domain
 import pandas as pd
 import numpy as np
 import csv
+import argparse
 
 
 def printMatches(all_matches, team_df):
@@ -157,11 +158,11 @@ def matchPairs(availability):
             
 
 
-def main():
+def main(teams_filename):
 
 
 
-    teams = pd.read_csv('teams.csv')
+    teams = pd.read_csv(teams_filename)
 
 
 
@@ -240,4 +241,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--teams", type=str, default="teams.csv", help="Input teams spreadsheet")
+
+    args = parser.parse_args()
+
+    teams_filename = args.teams
+
+    main(teams_filename)
