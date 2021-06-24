@@ -7,7 +7,7 @@ Created for the Global Summit 2021
 
 
 ## Usage
-  1. Update teams.csv with real teams, their domains and timezones. Do not push this change.
+  1. Update teams.csv with real teams, their domains and timezones. 
   
   2. Update time_of_day_constraints.csv if desired for availability based on time of day (rating 0-3 where 0 is unavailable, 3 is best time)
   
