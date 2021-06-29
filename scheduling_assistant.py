@@ -9,7 +9,7 @@ import csv
 import argparse
 
 
-def printMatches(all_matches, team_df):
+def printMatches(all_matches,  team_df):
 
     print("Team\t\tDomain Mtg 1\tDomain Mtg 2\tMeeting 3\tMeeting 4")
     n_teams = team_df.shape[0]
@@ -24,8 +24,12 @@ def printMatches(all_matches, team_df):
                 print("\tNone\t", end="")
         print()
 
-def exportMatches(all_matches, team_df, filename='matches.csv'):
-    headers = ['Team', 'Domain Match 1', 'Domain Match 2', 'Non-domain Match 1', 'Non-domain Match 2']
+def exportMatches(all_matches, suggested_times, team_df, tod_constraints, main_schedule_df, filename='matches.csv'):
+    headers = ['Team']
+    for m in range(1, all_matches.shape[0] + 1):
+        headers.append('Meeting %i' % (m))
+        headers.append('Time %i (UTC)' % (m))
+        headers.append('Time %i (Local)' % (m))
     n_teams = team_df.shape[0]
     all_matches = all_matches.T
 
@@ -33,29 +37,45 @@ def exportMatches(all_matches, team_df, filename='matches.csv'):
     with open(filename, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
         writer.writerow(headers)
-        for t in range(n_teams):
-            row = [team_df['Team'][t]]
-            for m in range(all_matches[t].shape[0]):
-                t2 = int(all_matches[t, m])
+        for t1 in range(n_teams):
+            row = [team_df['Team'][t1]]
+            for m in range(all_matches[t1].shape[0]):
+                t2 = int(all_matches[t1, m])
                 if t2 >= 0:
                     row.append(team_df['Team'][t2])
+                    suggested_timeslot = suggested_times[t1, t2]
+
+                    suggested_time_utc = main_schedule_df['Datetime'][int(suggested_timeslot)]
+                    row.append(suggested_time_utc.strftime('%m/%d/%Y %H:%M'))
+                    timezone = team_df['Timezone'][t1]
+                    local_datetime = suggested_time_utc + pd.Timedelta(hours=int(timezone))
+                    local_datetime_str = local_datetime.strftime('%m/%d/%Y %H:%M')
+                    row.append(local_datetime_str)
                 else:
                     row.append('None')
+                    row.append('')
+                    row.append('')
             writer.writerow(row)
     print('wrote file', filename)
         
 
 
-def initAvailability(teams_df, basic):
+def initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, n_timeslots, slots_per_hour):
  
     # Returns time weights for each team, based on an array given in UTC time (basic)
     
     slots_per_hour = 2 # meetings available on the half hour
+    main_availability = main_schedule_df['Events'].isna().astype(int).to_numpy() # Not available when an all teams event is scheduled
 
     availability = []
     timezones = teams_df['Timezone'].to_list()
     for tz in timezones:
-        availability.append(np.roll(basic, tz*slots_per_hour))
+        team_availability = np.roll(tod_constraints, -tz*slots_per_hour)
+        team_availability = team_availability[initial_hour*slots_per_hour:]
+        team_availability = team_availability[:n_timeslots]
+        team_availability *= main_availability
+        availability.append(team_availability)
+
     return np.array(availability)
 
 
@@ -81,24 +101,31 @@ def doodle(availability):
 
 def doodlePairwise(availability):
 
-    # 2d matrix: 1 if teams have a time they can meet, 0 if otherwise
+    # Input: 2d matrix team*timeslot with timeslot preference weights
+    # Output: 2d matrix, team*team, 1 if teams have a time they can meet, 0 if otherwise
 
     pairwise_availability = np.zeros((availability.shape[0], availability.shape[0]))
-    suggested_times = np.zeros((availability.shape[0], availability.shape[0]))
+    suggested_times = np.zeros((availability.shape[0], availability.shape[0]), dtype=int)
     for i in range(availability.shape[0]):
-        for j in range(availability.shape[0]):
+        for j in range(i + 1, availability.shape[0]):
             available_both = np.concatenate(([availability[i]], [availability[j]]), axis=0)
 
             doodle_times = doodle(available_both)
             if len(doodle_times)> 0:
                 pairwise_availability[i, j] = 1
+                pairwise_availability[j, i] = 1
                 suggested_time = int(np.random.choice(doodle_times))
                 suggested_times[i, j] = suggested_time
+                suggested_times[j, i] = suggested_time
+                availability[i][suggested_time] = 0
+                availability[j][suggested_time] = 0
 
  
 
 
     return pairwise_availability, suggested_times
+
+
 
 
 def updateAvailability(pairwise_availability, matches):
@@ -153,15 +180,19 @@ def nonDomainAvailability(teams_df):
         
                 
 
-def matchPairs(pairwise_availability):
+def matchPairs(pairwise_availability, already_matched = None):
 
-    # Given 2d availability matrix, find a match for each team
+    # Input: 2d pairwise availability (team*team)
+    # Output: 1d matches: match[team1] = team2
 
     max_possible_score = pairwise_availability.shape[0] // 2
     current_best_score = 0
-    current_output = np.ndarray((0))
+    current_output = np.full((pairwise_availability.shape[0]), -1)
+    if already_matched is not None:
+        already_matched = np.array(already_matched)
+
     
-    for _ in range(1000):
+    for _ in range(10000):
         output = np.full((pairwise_availability.shape[0]), -1)
         my_av = pairwise_availability.copy()
         score = 0
@@ -184,89 +215,119 @@ def matchPairs(pairwise_availability):
                 my_av[i,:] = 0
                 my_av[:, choice] = 0
                 my_av[choice,:] = 0
-             
+
+        # Penalty for matching with None if it has a previous None
+        if already_matched is not None:
+
+            for i in range(output.shape[0]):
+                if -1 in already_matched[:, i] and output[i] == -1:
+                    n_nones = sum(already_matched[:, i] == -1)
+                    score -= 2*n_nones
+
         if score > current_best_score:
             current_best_score = score
             current_output = output
         if current_best_score >= max_possible_score:
             break
 
+    
+
     return current_output, 2*current_best_score
     
-            
-            
+
+def networkingMeetings(n_teams, n_meetings, n_per_meeting):
+    total_slots = n_per_meeting*n_meetings
+    n_to_cover = 1 + total_slots // n_teams
+
+    rng = np.random.default_rng()
+    
+    teams = np.arange(n_teams)
+    result = []
+    for _ in range(n_meetings):
+        rng.shuffle(teams)
+        meeting = teams[:n_per_meeting]
+        result.append(list(meeting))
 
 
-def main(teams_filename, time_of_day_constraints_filename):
+    return result
+
+    
+
+def main(teams_filename, time_of_day_constraints_filename, main_schedule_filename):
+
+    # load data
+    teams_df = pd.read_csv(teams_filename)
+    tod_constraints_df = pd.read_csv(time_of_day_constraints_filename)
+    main_schedule = pd.read_csv(main_schedule_filename)
+
+    main_schedule['Datetime'] = pd.to_datetime(main_schedule.Date + " " + main_schedule.Time)
+
+
+
+    # Networking meetings: Teams send a representative to each one, so can overlap
+    n_network_sessions = 2
+    network_sessions = []
+    n_teams = teams_df.shape[0]
+    n_meetings = 5
+    n_per_meeting = 6
+    for i in range(n_network_sessions):
+        network_sessions.append(networkingMeetings(n_teams, n_meetings, n_per_meeting))
+    
 
     # Given a csv with Teams, Domain, and Timezone, create a schedule 
 
-    teams_df = pd.read_csv(teams_filename)
-    tod_constraints_df = pd.read_csv(time_of_day_constraints_filename)
     tod_constraints = tod_constraints_df['Availability'].to_numpy()
+    tod_constraints = np.tile(tod_constraints, 3)
 
+    initial_hour = main_schedule.Datetime.iloc[0].hour
+    n_timeslots = main_schedule.shape[0]
 
-    # basic_availability = np.array([
-    #     0, # 12 am
-    #     0, 
-    #     0, 
-    #     0, 
-    #     0, 
-    #     0, 
-    #     0, 
-    #     0, # 7 am
-    #     2, 
-    #     3, # 9 am
-    #     3, 
-    #     3, 
-    #     3, #12 pm
-    #     3, 
-    #     3, 
-    #     3, 
-    #     3, 
-    #     3, # 5pm
-    #     2, 
-    #     2, 
-    #     2, 
-    #     0, # 9 pm
-    #     0, 
-    #     0
+    slots_per_hour = 2 # Half hour timeslots
 
-    # ])
+    basic_availability = initAvailability(teams_df, main_schedule, tod_constraints, initial_hour, n_timeslots, slots_per_hour)
 
-
-
-    basic_availability = initAvailability(teams_df, tod_constraints)
-    doodle_pairwise_availability, suggested_times1 = doodlePairwise(basic_availability)
+    doodle_pairwise_availability, suggested_times = doodlePairwise(basic_availability)
 
     # Use matching domains
     domain_availability = domainAvailability(teams_df)
     # Multiplication creates the constraint (zero if either are zero)
     pairwise_availability = doodle_pairwise_availability*domain_availability
 
+    all_matches = []
+
+    # First meeting (matched domain)
     matches1, score1 = matchPairs(pairwise_availability)
+    print('match 1 score: ', score1)
+    all_matches.append(matches1)
 
 
+    # Second meeting (matched domain)
     pairwise_availability = updateAvailability(pairwise_availability, matches1)
-    print(pairwise_availability)
-    matches2, score2 = matchPairs(pairwise_availability)
+    matches2, score2 = matchPairs(pairwise_availability, all_matches)
+    print('match 2 score: ', score2)
+    all_matches.append(matches2)
+
+
+    # Third meeting (non-matching domains)
     pairwise_availability = updateAvailability(pairwise_availability, matches2)
-
-
-    # Use non-matching domains
     non_domain_availability = nonDomainAvailability(teams_df)
+    
     # we can start over because inherently no matching domain pair can be a non-matching pair
     pairwise_availability = doodle_pairwise_availability*non_domain_availability
+    matches3, score3 = matchPairs(pairwise_availability, all_matches)
+    print('match 3 score: ', score3)
+    all_matches.append(matches3)
 
-    matches3, score3 = matchPairs(pairwise_availability)
+    # Fourth meeting (non-matching domains)
     pairwise_availability = updateAvailability(pairwise_availability, matches3)
-
-    matches4, score4 = matchPairs(pairwise_availability)
+    matches4, score4 = matchPairs(pairwise_availability, all_matches)
+    print('match 4 score: ', score4)
+    all_matches.append(matches4)
 
     # Output all
-    all_matches = np.array([matches1, matches2, matches3, matches4])
+    all_matches = np.array(all_matches)
     printMatches(all_matches, teams_df)
-    exportMatches(all_matches, teams_df, 'schedule.csv')
+    exportMatches(all_matches, suggested_times, teams_df, tod_constraints_df, main_schedule, 'schedule.csv')
 
 
 
@@ -274,9 +335,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--teams", type=str, default="teams.csv", help="Input teams spreadsheet")
     parser.add_argument("--tod", type=str, default="time_of_day_constraints.csv", help="Input time of day weights")
+    parser.add_argument("--main", type=str, default="main_schedule.csv", help="Input main events schedule")
     args = parser.parse_args()
 
     teams_filename = args.teams
     tod_filename = args.tod
-
-    main(teams_filename, tod_filename)
+    main_filename = args.main
+    main(teams_filename, tod_filename, main_filename)
