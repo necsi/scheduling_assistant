@@ -57,7 +57,43 @@ def exportMatches(all_matches, suggested_times, team_df, tod_constraints, main_s
                     row.append('')
             writer.writerow(row)
     print('wrote file', filename)
-        
+
+
+def exportFullSchedule(main_schedule_df, teams_df, all_matches, suggested_times, filename='full_schedule.csv'):
+    full_df = main_schedule_df.copy()
+    for i, team in enumerate(teams_df['Team']):
+        full_df[team] = main_schedule_df['Events']
+        for m in range(len(all_matches)):
+            meeting_partner = all_matches[m][i]
+            meeting_timeslot = suggested_times[i][meeting_partner]
+            full_df[team].iloc[meeting_timeslot] = teams_df['Team'].iloc[meeting_partner]
+    full_df.drop(columns=['Timeslot', 'Events'], inplace=True)
+    full_df.set_index('Datetime', inplace=True, drop=True)
+
+
+    full_df = full_df.T
+
+    full_df.set_index(np.arange(full_df.shape[0] ), inplace=True)
+    full_df['Timezone'] = teams_df['Timezone']
+    full_df['Team'] = teams_df['Team']
+
+    # # Add row for all
+    # full_df['Team'].iloc[-1] = 'ALL'
+    # full_df['Timezone'].iloc[-1] = 0
+    # full_df.index = full_df.index + 1  # shifting index
+    # full_df = full_df.sort_index()  # sorting by index
+  
+
+    cols = full_df.columns.tolist()
+    cols = cols[:-2]
+    cols = ['Team', 'Timezone'] + cols
+    full_df = full_df[cols]
+ 
+
+    
+    full_df.to_csv(filename, index=False)
+    print('wrote file', filename)
+
 
 
 def initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, n_timeslots, slots_per_hour):
@@ -259,10 +295,8 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     teams_df = pd.read_csv(teams_filename)
     tod_constraints_df = pd.read_csv(time_of_day_constraints_filename)
     main_schedule = pd.read_csv(main_schedule_filename)
-
     main_schedule['Datetime'] = pd.to_datetime(main_schedule.Date + " " + main_schedule.Time)
-
-
+    main_schedule.drop(columns=['Date', 'Time'], inplace=True)
 
     # Networking meetings: Teams send a representative to each one, so can overlap
     n_network_sessions = 2
@@ -327,7 +361,8 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     # Output all
     all_matches = np.array(all_matches)
     printMatches(all_matches, teams_df)
-    exportMatches(all_matches, suggested_times, teams_df, tod_constraints_df, main_schedule, 'schedule.csv')
+    exportMatches(all_matches, suggested_times, teams_df, tod_constraints_df, main_schedule, 'teams_schedule.csv')
+    exportFullSchedule(main_schedule, teams_df, all_matches, suggested_times, 'full_schedule.csv')
 
 
 
@@ -335,7 +370,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--teams", type=str, default="teams.csv", help="Input teams spreadsheet")
     parser.add_argument("--tod", type=str, default="time_of_day_constraints.csv", help="Input time of day weights")
-    parser.add_argument("--main", type=str, default="main_schedule.csv", help="Input main events schedule")
+    parser.add_argument("--main", type=str, default="init_schedule.csv", help="Input main events schedule")
     args = parser.parse_args()
 
     teams_filename = args.teams
