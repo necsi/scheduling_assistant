@@ -56,17 +56,22 @@ def exportMatches(all_matches, suggested_times, team_df, tod_constraints, main_s
                     row.append('')
                     row.append('')
             writer.writerow(row)
-    print('wrote file', filename)
+    print('wrote file', filename, "\n")
 
 
 def exportFullSchedule(main_schedule_df, teams_df, all_matches, suggested_times, filename='full_schedule.csv'):
+    
+
+
     full_df = main_schedule_df.copy()
     for i, team in enumerate(teams_df['Team']):
         full_df[team] = main_schedule_df['Events']
         for m in range(len(all_matches)):
             meeting_partner = all_matches[m][i]
-            meeting_timeslot = suggested_times[i][meeting_partner]
-            full_df[team].iloc[meeting_timeslot] = teams_df['Team'].iloc[meeting_partner]
+            if(meeting_partner >= 0):
+                meeting_timeslot = suggested_times[i][meeting_partner]
+                full_df[team].iloc[meeting_timeslot] = teams_df['Team'].iloc[meeting_partner]
+
     full_df.drop(columns=['Timeslot', 'Events'], inplace=True)
     full_df.set_index('Datetime', inplace=True, drop=True)
 
@@ -76,12 +81,6 @@ def exportFullSchedule(main_schedule_df, teams_df, all_matches, suggested_times,
     full_df.set_index(np.arange(full_df.shape[0] ), inplace=True)
     full_df['Timezone'] = teams_df['Timezone']
     full_df['Team'] = teams_df['Team']
-
-    # # Add row for all
-    # full_df['Team'].iloc[-1] = 'ALL'
-    # full_df['Timezone'].iloc[-1] = 0
-    # full_df.index = full_df.index + 1  # shifting index
-    # full_df = full_df.sort_index()  # sorting by index
   
 
     cols = full_df.columns.tolist()
@@ -92,7 +91,7 @@ def exportFullSchedule(main_schedule_df, teams_df, all_matches, suggested_times,
 
     
     full_df.to_csv(filename, index=False)
-    print('wrote file', filename)
+    print("\nwrote file", filename, "\n")
 
 
 
@@ -110,6 +109,7 @@ def initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, 
         team_availability = team_availability[initial_hour*slots_per_hour:]
         team_availability = team_availability[:n_timeslots]
         team_availability *= main_availability
+
         availability.append(team_availability)
 
     return np.array(availability)
@@ -126,11 +126,16 @@ def doodle(availability):
     availability *= unavailable
 
     time_score = np.prod(availability, axis=0)
-    best_times = np.where(time_score == np.max(time_score))
-    #best_times = best_times.to_list()
-    best_times = best_times[0]
+    best_times = []
 
-    best_times = [int(best_times[t]) for t in range(len(best_times))]
+    max_time_score = np.max(time_score)
+    if(max_time_score > 0):
+
+        best_times = np.where(time_score == max_time_score)
+        #best_times = best_times.to_list()
+        best_times = best_times[0]
+
+        best_times = [int(best_times[t]) for t in range(len(best_times))]
 
 
     return best_times
@@ -147,6 +152,7 @@ def doodlePairwise(availability):
             available_both = np.concatenate(([availability[i]], [availability[j]]), axis=0)
 
             doodle_times = doodle(available_both)
+
             if len(doodle_times)> 0:
                 pairwise_availability[i, j] = 1
                 pairwise_availability[j, i] = 1
@@ -157,7 +163,6 @@ def doodlePairwise(availability):
                 availability[j][suggested_time] = 0
 
  
-
 
     return pairwise_availability, suggested_times
 
@@ -228,7 +233,7 @@ def matchPairs(pairwise_availability, already_matched = None):
         already_matched = np.array(already_matched)
 
     
-    for _ in range(10000):
+    for _ in range(1000):
         output = np.full((pairwise_availability.shape[0]), -1)
         my_av = pairwise_availability.copy()
         score = 0
@@ -296,7 +301,7 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     tod_constraints_df = pd.read_csv(time_of_day_constraints_filename)
     main_schedule = pd.read_csv(main_schedule_filename)
     main_schedule['Datetime'] = pd.to_datetime(main_schedule.Date + " " + main_schedule.Time)
-    main_schedule.drop(columns=['Date', 'Time'], inplace=True)
+    main_schedule.drop(columns=['Date', 'Time', 'Session', 'Notes'], inplace=True)
 
     # Networking meetings: Teams send a representative to each one, so can overlap
     n_network_sessions = 2
@@ -320,29 +325,35 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
 
     basic_availability = initAvailability(teams_df, main_schedule, tod_constraints, initial_hour, n_timeslots, slots_per_hour)
 
+
     doodle_pairwise_availability, suggested_times = doodlePairwise(basic_availability)
+
+
 
     # Use matching domains
     domain_availability = domainAvailability(teams_df)
     # Multiplication creates the constraint (zero if either are zero)
     pairwise_availability = doodle_pairwise_availability*domain_availability
-
+   
     all_matches = []
 
     # First meeting (matched domain)
     matches1, score1 = matchPairs(pairwise_availability)
+
+
+
     print('match 1 score: ', score1)
     all_matches.append(matches1)
 
 
-    # Second meeting (matched domain)
+    # # Second meeting (matched domain)
     pairwise_availability = updateAvailability(pairwise_availability, matches1)
     matches2, score2 = matchPairs(pairwise_availability, all_matches)
     print('match 2 score: ', score2)
     all_matches.append(matches2)
 
 
-    # Third meeting (non-matching domains)
+    # # Third meeting (non-matching domains)
     pairwise_availability = updateAvailability(pairwise_availability, matches2)
     non_domain_availability = nonDomainAvailability(teams_df)
     
@@ -352,7 +363,7 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     print('match 3 score: ', score3)
     all_matches.append(matches3)
 
-    # Fourth meeting (non-matching domains)
+    # # Fourth meeting (non-matching domains)
     pairwise_availability = updateAvailability(pairwise_availability, matches3)
     matches4, score4 = matchPairs(pairwise_availability, all_matches)
     print('match 4 score: ', score4)
