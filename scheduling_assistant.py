@@ -25,6 +25,8 @@ def printMatches(all_matches,  team_df):
         print()
 
 def exportMatches(all_matches, suggested_times, team_df, tod_constraints, main_schedule_df, filename='matches.csv'):
+    # Exports a per-team schedule with matching teams and times
+
     headers = ['Team']
     for m in range(1, all_matches.shape[0] + 1):
         headers.append('Meeting %i' % (m))
@@ -60,7 +62,7 @@ def exportMatches(all_matches, suggested_times, team_df, tod_constraints, main_s
 
 
 def exportFullSchedule(main_schedule_df, teams_df, all_matches, suggested_times, filename='full_schedule.csv'):
-    
+    # Exports a calendar-style schedule of all events
 
 
     full_df = main_schedule_df.copy()
@@ -97,7 +99,7 @@ def exportFullSchedule(main_schedule_df, teams_df, all_matches, suggested_times,
 
 def initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, n_timeslots, slots_per_hour):
  
-    # Returns time weights for each team, based on an array given in UTC time (basic)
+    # Returns time weights for each team, based on time of day constraints and main schedule constraints
     
     slots_per_hour = 2 # meetings available on the half hour
     main_availability = main_schedule_df['Events'].isna().astype(int).to_numpy() # Not available when an all teams event is scheduled
