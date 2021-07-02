@@ -384,10 +384,10 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--teams", type=str, default="teams.csv", help="Input teams spreadsheet")
-    parser.add_argument("--tod", type=str, default="time_of_day_constraints.csv", help="Input time of day weights")
-    parser.add_argument("--main", type=str, default="init_schedule.csv", help="Input main events schedule")
-    parser.add_argument("--speakers", type=str, default="speakers.csv", help="Input speakers")
+    parser.add_argument("--teams", type=str, default="input/teams.csv", help="Input teams spreadsheet")
+    parser.add_argument("--tod", type=str, default="input/time_of_day_constraints.csv", help="Input time of day weights")
+    parser.add_argument("--main", type=str, default="input/init_schedule.csv", help="Input main events schedule")
+    parser.add_argument("--speakers", type=str, default="input/speakers.csv", help="Input speakers")
     parser.add_argument("--trials", type=int, default=10000, help="How many combinations to try when matching.")
     args = parser.parse_args()
 
