@@ -149,8 +149,14 @@ def doodlePairwise(availability):
 
     pairwise_availability = np.zeros((availability.shape[0], availability.shape[0]))
     suggested_times = np.zeros((availability.shape[0], availability.shape[0]), dtype=int)
-    for i in range(availability.shape[0]):
-        for j in range(i + 1, availability.shape[0]):
+
+
+    order1 = np.random.permutation(availability.shape[0]).tolist()
+    order1 = [int(o) for o in order1]
+    for i in order1:
+        order2 = np.random.permutation(availability.shape[0]).tolist()
+        order2 = [int(o) for o in order2]
+        for j in order2:
             available_both = np.concatenate(([availability[i]], [availability[j]]), axis=0)
 
             doodle_times = doodle(available_both)
@@ -278,25 +284,27 @@ def matchPairs(pairwise_availability, already_matched = None, trials=1000):
     return current_output, 2*current_best_score
     
 
-def networkingMeetings(n_teams, n_meetings, n_per_meeting):
-    total_slots = n_per_meeting*n_meetings
-    n_to_cover = 1 + total_slots // n_teams
+def speakerSchedule(speakers_df):
+    # unfinished
+    n_speakers = len(speakers_df)
+    n_blocks = 3 # block = 2 hour sessions with 6 speakers (3 per hour) times n
+    speakers_per_room = 6 # number of speakers 
+    n_speaker_repeats = 1 # speakers should be repeated n times
+    n_speaker_slots = n_speakers*n_speaker_repeats
+    total_sub_blocks = n_speaker_slots // speakers_per_room # how many 2 hour blocks are needed, including overlap
+    if n_speaker_slots % speakers_per_room > 0:
+        total_sub_blocks += 1
+    rooms_per_block = total_sub_blocks // n_blocks # how many separate rooms are needed during each 2 hour block
+    if total_sub_blocks % n_blocks > 0:
+        rooms_per_block += 1
 
-    rng = np.random.default_rng()
-    
-    teams = np.arange(n_teams)
-    result = []
-    for _ in range(n_meetings):
-        rng.shuffle(teams)
-        meeting = teams[:n_per_meeting]
-        result.append(list(meeting))
+    # let's ignore time zone for the moment
 
+    # each speaker can only speak during 1 block at a time
+    # each speaker should speak n_speaker_repeats times. let's ignore this too right now (set it to 1)
+    # 
 
-    return result
-
-    
-
-def main(teams_filename, time_of_day_constraints_filename, main_schedule_filename, trials):
+def main(teams_filename, time_of_day_constraints_filename, main_schedule_filename, speakers_filename, trials):
 
     # load data
     teams_df = pd.read_csv(teams_filename)
@@ -304,16 +312,11 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     main_schedule = pd.read_csv(main_schedule_filename)
     main_schedule['Datetime'] = pd.to_datetime(main_schedule.Date + " " + main_schedule.Time)
     main_schedule.drop(columns=['Date', 'Time', 'Session', 'Notes'], inplace=True)
+    speakers_df = pd.read_csv(speakers_filename)
 
-    # Networking meetings: Teams send a representative to each one, so can overlap
-    n_network_sessions = 2
-    network_sessions = []
-    n_teams = teams_df.shape[0]
-    n_meetings = 5
-    n_per_meeting = 6
-    for i in range(n_network_sessions):
-        network_sessions.append(networkingMeetings(n_teams, n_meetings, n_per_meeting))
-    
+    # Speaker schedule (skills building blocks)
+    # Unfinished
+    speaker_schedule = speakerSchedule(speakers_df)
 
     # Given a csv with Teams, Domain, and Timezone, create a schedule 
 
@@ -340,7 +343,7 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     all_matches = []
 
     # First meeting (matched domain)
-    matches1, score1 = matchPairs(pairwise_availability)
+    matches1, score1 = matchPairs(pairwise_availability, trials=trials)
 
 
 
@@ -350,7 +353,7 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
 
     # # Second meeting (matched domain)
     pairwise_availability = updateAvailability(pairwise_availability, matches1)
-    matches2, score2 = matchPairs(pairwise_availability, all_matches)
+    matches2, score2 = matchPairs(pairwise_availability, all_matches, trials=trials)
     print('match 2 score: ', score2)
     all_matches.append(matches2)
 
@@ -361,7 +364,7 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     
     # we can start over because inherently no matching domain pair can be a non-matching pair
     pairwise_availability = doodle_pairwise_availability*non_domain_availability
-    matches3, score3 = matchPairs(pairwise_availability, all_matches)
+    matches3, score3 = matchPairs(pairwise_availability, all_matches, trials=trials)
     print('match 3 score: ', score3)
     all_matches.append(matches3)
 
@@ -374,8 +377,8 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     # Output all
     all_matches = np.array(all_matches)
     printMatches(all_matches, teams_df)
-    exportMatches(all_matches, suggested_times, teams_df, tod_constraints_df, main_schedule, 'teams_schedule.csv')
-    exportFullSchedule(main_schedule, teams_df, all_matches, suggested_times, 'full_schedule.csv')
+    exportMatches(all_matches, suggested_times, teams_df, tod_constraints_df, main_schedule, filename='output/teams_schedule.csv')
+    exportFullSchedule(main_schedule, teams_df, all_matches, suggested_times, filename='output/full_schedule.csv')
 
 
 
@@ -384,11 +387,13 @@ if __name__ == '__main__':
     parser.add_argument("--teams", type=str, default="teams.csv", help="Input teams spreadsheet")
     parser.add_argument("--tod", type=str, default="time_of_day_constraints.csv", help="Input time of day weights")
     parser.add_argument("--main", type=str, default="init_schedule.csv", help="Input main events schedule")
+    parser.add_argument("--speakers", type=str, default="speakers.csv", help="Input speakers")
     parser.add_argument("--trials", type=int, default=10000, help="How many combinations to try when matching.")
     args = parser.parse_args()
 
     teams_filename = args.teams
     tod_filename = args.tod
     main_filename = args.main
+    speakers_filename = args.speakers
     trials = args.trials
-    main(teams_filename, tod_filename, main_filename, trials)
+    main(teams_filename, tod_filename, main_filename, speakers_filename, trials=trials)
