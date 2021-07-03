@@ -1,9 +1,11 @@
 # scheduling_assistant
 
-Create a schedule pairing up teams across timezones.
-Also find speaker availability based on time zone and meeting time.
-
 Created for the Global Summit 2021
+
+* Create a schedule pairing up teams across timezones.
+* Find speaker availability based on time zone and meeting time.
+
+
 
 
 
