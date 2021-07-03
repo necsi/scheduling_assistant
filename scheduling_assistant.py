@@ -10,7 +10,7 @@ import argparse
 
 
 def printMatches(all_matches,  team_df):
-
+    # Print matches to command line
     print("Team\t\tDomain Mtg 1\tDomain Mtg 2\tMeeting 3\tMeeting 4")
     n_teams = team_df.shape[0]
     n_events = all_matches.shape[0]
@@ -117,10 +117,31 @@ def initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, 
     return np.array(availability)
 
 
+def initAvailabilitySpeaker(speaker_df, main_schedule_df, tod_constraints, initial_hour, n_timeslots, slots_per_hour):
+ 
+    # Returns time weights for each team, based on time of day constraints and main schedule constraints
+    
+    slots_per_hour = 2 # meetings available on the half hour
+    skills_sessions_times = main_schedule_df['Events'].str[:6] == 'Skills' # Only available when a Skills event is scheuled
+    skills_sessions_times = skills_sessions_times.astype(int).to_numpy()
+
+    availability = []
+    timezones = speaker_df['Timezone'].to_list()
+    for tz in timezones:
+        team_availability = np.roll(tod_constraints, -tz*slots_per_hour)
+        team_availability = team_availability[initial_hour*slots_per_hour:]
+        team_availability = team_availability[:n_timeslots]
+        team_availability *= skills_sessions_times
+
+        availability.append(team_availability)
+
+    return np.array(availability)
+
 
 def doodle(availability):
-    # Doodle poll-like function to find best times given availabilities defined as a weight for each hour, higher weights better
-    # Returns array of optimal timeslots, if any
+    # Doodle poll-like function to find best times 
+    # Input: constraints*availabilities: each constraint is a doodle poll input, availabilities defined as a weight for each hour, higher weights better
+    # Returns: array of optimal timeslots, if any
 
     # Zeros mean completely unavailable, so remove them
     unavailable = np.where(availability == 0, 0, 1)
@@ -284,51 +305,92 @@ def matchPairs(pairwise_availability, already_matched = None, trials=1000):
     return current_output, 2*current_best_score
     
 
-def speakerSchedule(speakers_df):
-    # unfinished
-    n_speakers = len(speakers_df)
-    n_blocks = 3 # block = 2 hour sessions with 6 speakers (3 per hour) times n
-    speakers_per_room = 6 # number of speakers 
-    n_speaker_repeats = 1 # speakers should be repeated n times
-    n_speaker_slots = n_speakers*n_speaker_repeats
-    total_sub_blocks = n_speaker_slots // speakers_per_room # how many 2 hour blocks are needed, including overlap
-    if n_speaker_slots % speakers_per_room > 0:
-        total_sub_blocks += 1
-    rooms_per_block = total_sub_blocks // n_blocks # how many separate rooms are needed during each 2 hour block
-    if total_sub_blocks % n_blocks > 0:
-        rooms_per_block += 1
+def speakerSchedule(speakers_df, speaker_basic_availability, main_schedule_df, output_filename='output/speakers_schedule.csv'):
+    # Find out what speakers are available for which Skills block, as defined in the initial schedule as Skills 1, Skills 2, etc.
+    skills_sessions_times = main_schedule_df[main_schedule_df['Events'].str[:6] == 'Skills']
+    skills_sessions_titles = pd.unique(skills_sessions_times['Events'])
+    output_columns = ['Speaker', 'Timezone', 'Topic']
+    for title in skills_sessions_titles:
+        output_columns.append(title + ': Available')
+        output_columns.append(title + ': Local Time')
+    output_df = pd.DataFrame(columns=output_columns)
 
-    # let's ignore time zone for the moment
 
-    # each speaker can only speak during 1 block at a time
-    # each speaker should speak n_speaker_repeats times. let's ignore this too right now (set it to 1)
-    # 
+    for si in range(speakers_df.shape[0]):
+
+        output_row = {
+                'Speaker': speakers_df['Speaker'].iloc[si], 
+                'Timezone': speakers_df['Timezone'].iloc[si], 
+                'Topic': speakers_df['Topic'].iloc[si]
+            }
+        for title in skills_sessions_titles:
+
+            # get times for this session from main df
+            session_times = skills_sessions_times[skills_sessions_times['Events'] == title]['Datetime']
+
+            session_timeslots = session_times.index.to_numpy().tolist()
+ 
+            session_availability = np.zeros(main_schedule_df.shape[0])
+            session_availability[session_timeslots] = 1
+
+
+            to_doodle = np.array([session_availability, speaker_basic_availability[si]])
+            #print(to_doodle)
+            speaker_session_times = doodle(to_doodle)
+
+            
+            available = False
+            if(len(speaker_session_times) == len(session_timeslots)):
+                available = True
+
+
+            output_row[title + ': Available'] = available
+
+            suggested_time_utc = main_schedule_df['Datetime'].iloc[int(session_timeslots[0])]
+            #row.append(suggested_time_utc.strftime('%m/%d/%Y %H:%M'))
+            timezone = speakers_df['Timezone'][si]
+            local_datetime = suggested_time_utc + pd.Timedelta(hours=int(timezone))
+            local_datetime_str = local_datetime.strftime('%m/%d/%Y %H:%M')
+            output_row[title + ': Local Time'] = local_datetime_str
+        output_df = output_df.append(output_row, ignore_index=True)
+
+
+    output_df.to_csv(output_filename, index=False)
+    print('wrote ', output_filename)
+
 
 def main(teams_filename, time_of_day_constraints_filename, main_schedule_filename, speakers_filename, trials):
 
     # load data
     teams_df = pd.read_csv(teams_filename)
     tod_constraints_df = pd.read_csv(time_of_day_constraints_filename)
-    main_schedule = pd.read_csv(main_schedule_filename)
-    main_schedule['Datetime'] = pd.to_datetime(main_schedule.Date + " " + main_schedule.Time)
-    main_schedule.drop(columns=['Date', 'Time', 'Session', 'Notes'], inplace=True)
+    main_schedule_df = pd.read_csv(main_schedule_filename)
+    main_schedule_df['Datetime'] = pd.to_datetime(main_schedule_df.Date + " " + main_schedule_df.Time)
+    main_schedule_df.drop(columns=['Date', 'Time', 'Session', 'Notes'], inplace=True)
     speakers_df = pd.read_csv(speakers_filename)
 
-    # Speaker schedule (skills building blocks)
-    # Unfinished
-    speaker_schedule = speakerSchedule(speakers_df)
+
 
     # Given a csv with Teams, Domain, and Timezone, create a schedule 
 
     tod_constraints = tod_constraints_df['Availability'].to_numpy()
     tod_constraints = np.tile(tod_constraints, 3)
 
-    initial_hour = main_schedule.Datetime.iloc[0].hour
-    n_timeslots = main_schedule.shape[0]
+    initial_hour = main_schedule_df.Datetime.iloc[0].hour
+    n_timeslots = main_schedule_df.shape[0]
 
     slots_per_hour = 2 # Half hour timeslots
 
-    basic_availability = initAvailability(teams_df, main_schedule, tod_constraints, initial_hour, n_timeslots, slots_per_hour)
+
+    # Speaker schedule (skills building blocks)
+    # Unfinished
+    speaker_basic_availability = initAvailabilitySpeaker(speakers_df, main_schedule_df, tod_constraints, initial_hour, n_timeslots, slots_per_hour)
+
+    speaker_schedule = speakerSchedule(speakers_df, speaker_basic_availability, main_schedule_df)
+
+    basic_availability = initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, n_timeslots, slots_per_hour)
+
+
 
 
     doodle_pairwise_availability, suggested_times = doodlePairwise(basic_availability)
@@ -377,8 +439,8 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     # Output all
     all_matches = np.array(all_matches)
     printMatches(all_matches, teams_df)
-    exportMatches(all_matches, suggested_times, teams_df, tod_constraints_df, main_schedule, filename='output/teams_schedule.csv')
-    exportFullSchedule(main_schedule, teams_df, all_matches, suggested_times, filename='output/full_schedule.csv')
+    exportMatches(all_matches, suggested_times, teams_df, tod_constraints_df, main_schedule_df, filename='output/teams_schedule.csv')
+    exportFullSchedule(main_schedule_df, teams_df, all_matches, suggested_times, filename='output/full_schedule.csv')
 
 
 
