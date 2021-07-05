@@ -7,6 +7,8 @@ import pandas as pd
 import numpy as np
 import csv
 import argparse
+from pathlib import Path
+
 
 
 
@@ -490,11 +492,15 @@ if __name__ == '__main__':
     parser.add_argument("--main", type=str, default="input/init_schedule_example.csv", help="Input main events schedule")
     parser.add_argument("--speakers", type=str, default="input/speakers_example.csv", help="Input speakers")
     parser.add_argument("--trials", type=int, default=10000, help="How many combinations to try when matching.")
+    
     args = parser.parse_args()
+
+    Path("output").mkdir(parents=True, exist_ok=True)
 
     teams_filename = args.teams
     tod_filename = args.tod
     main_filename = args.main
     speakers_filename = args.speakers
     trials = args.trials
+ 
     main(teams_filename, tod_filename, main_filename, speakers_filename, trials=trials)
