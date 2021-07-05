@@ -51,8 +51,10 @@ def exportMatches(all_matches, suggested_times, team_df, tod_constraints, main_s
                     suggested_time_utc = main_schedule_df['Datetime'][int(suggested_timeslot)]
                     row.append(suggested_time_utc.strftime('%m/%d/%Y %H:%M'))
                     timezone = team_df['Timezone'][t1]
-                    local_datetime = suggested_time_utc + pd.Timedelta(hours=int(timezone))
+
+                    local_datetime = suggested_time_utc + pd.Timedelta(minutes=int(60*timezone))
                     local_datetime_str = local_datetime.strftime('%m/%d/%Y %H:%M')
+    
                     row.append(local_datetime_str)
                 else:
                     row.append('None')
@@ -112,7 +114,7 @@ def initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, 
     availability = []
     timezones = teams_df['Timezone'].to_list()
     for tz in timezones:
-        team_availability = np.roll(tod_constraints, -tz*slots_per_hour)
+        team_availability = np.roll(tod_constraints, int(-tz*slots_per_hour))
         team_availability = team_availability[initial_hour*slots_per_hour:]
         team_availability = team_availability[:n_timeslots]
         team_availability *= main_availability
@@ -357,9 +359,10 @@ def speakerSchedule(speakers_df, speaker_basic_availability, main_schedule_df, o
 
             suggested_time_utc = main_schedule_df['Datetime'].iloc[int(session_timeslots[0])]
             #row.append(suggested_time_utc.strftime('%m/%d/%Y %H:%M'))
-            timezone = int(speakers_df['Timezone'][si])
+            timezone = speakers_df['Timezone'][si]
 
-            local_datetime = suggested_time_utc + pd.Timedelta(hours=int(timezone))
+            local_datetime = suggested_time_utc + pd.Timedelta(minutes=int(60*timezone))
+ 
             local_datetime_str = local_datetime.strftime('%m/%d/%Y %H:%M')
             output_row[title + ': Local Time'] = local_datetime_str
         output_df = output_df.append(output_row, ignore_index=True)
