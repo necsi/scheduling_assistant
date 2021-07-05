@@ -16,11 +16,11 @@ def printMatches(all_matches,  team_df):
     n_teams = team_df.shape[0]
     n_events = all_matches.shape[0]
     for t1 in range(n_teams):
-        print("%s (%s)" % (team_df['Team'][t1], team_df['Domain'][t1][:3]), ":", end="")
+        print("%s (%s)" % (team_df['Superteam'][t1], team_df['Domain'][t1][:3]), ":", end="")
         for e in range(n_events):
             t2 = all_matches[e][t1]
             if t2 >= 0:
-                print("\t%s (%s)" % (team_df['Team'][t2], team_df['Domain'][t2][:3]), end="\t")
+                print("\t%s (%s)" % (team_df['Superteam'][t2], team_df['Domain'][t2][:3]), end="\t")
             else: 
                 print("\tNone\t\t", end="")
         print()
@@ -28,7 +28,7 @@ def printMatches(all_matches,  team_df):
 def exportMatches(all_matches, suggested_times, team_df, tod_constraints, main_schedule_df, filename='matches.csv'):
     # Exports a per-team schedule with matching teams and times
 
-    headers = ['Team']
+    headers = ['Superteam', 'Teams']
     for m in range(1, all_matches.shape[0] + 1):
         headers.append('Meeting %i' % (m))
         headers.append('Time %i (UTC)' % (m))
@@ -42,10 +42,12 @@ def exportMatches(all_matches, suggested_times, team_df, tod_constraints, main_s
         writer.writerow(headers)
         for t1 in range(n_teams):
             row = [team_df['Team'][t1]]
+            row.append(team_df['AllTeams'][t1])
             for m in range(all_matches[t1].shape[0]):
                 t2 = int(all_matches[t1, m])
                 if t2 >= 0:
                     row.append(team_df['Team'][t2])
+
                     suggested_timeslot = suggested_times[t1, t2]
 
                     suggested_time_utc = main_schedule_df['Datetime'][int(suggested_timeslot)]
@@ -98,6 +100,26 @@ def exportFullSchedule(main_schedule_df, teams_df, all_matches, suggested_times,
     full_df.to_csv(filename, index=False)
     print("\nwrote file", filename, "\n")
 
+
+
+def makeSuperteams(teams_df):
+    # Using superteams as indicated on teams spreadsheet, group by superteam and use average timezone
+    teams_df_local = teams_df[['Superteam', 'Timezone', 'Type', 'Team Name']].dropna()
+
+
+    superteams_df = teams_df_local.groupby('Superteam').first()
+    superteams_timezones = teams_df_local.groupby('Superteam').mean()
+    superteams_names = teams_df_local.groupby(['Superteam'])['Team Name'].apply(','.join)
+
+    superteams_df['Timezone'] = superteams_timezones
+
+
+    superteams_df['AllTeams'] = superteams_names
+    superteams_df['Domain'] = superteams_df['Type']
+    superteams_df = superteams_df.reset_index()
+    superteams_df['Team'] = superteams_df['Superteam']
+
+    return superteams_df
 
 
 def initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, n_timeslots, slots_per_hour):
@@ -227,10 +249,10 @@ def domainAvailability(teams_df):
     # 2d matrix: 1 if teams are in the same domain, 0 if otherwise
 
     pairwise_availability = np.zeros((teams_df.shape[0], teams_df.shape[0]))
-    domains = teams_df['Domain'].unique()
+    domains = teams_df['Type'].unique()
 
     for domain in domains:
-        domain_team = teams_df.loc[teams_df['Domain'] == domain]
+        domain_team = teams_df.loc[teams_df['Type'] == domain]
 
         n_domain_team = len(domain_team)
 
@@ -374,8 +396,11 @@ def speakerSchedule(speakers_df, speaker_basic_availability, main_schedule_df, o
 
 def main(teams_filename, time_of_day_constraints_filename, main_schedule_filename, speakers_filename, trials):
 
+
+
     # load data
     teams_df = pd.read_csv(teams_filename)
+    teams_df = makeSuperteams(teams_df)
     tod_constraints_df = pd.read_csv(time_of_day_constraints_filename)
     main_schedule_df = pd.read_csv(main_schedule_filename)
     main_schedule_df['Datetime'] = pd.to_datetime(main_schedule_df.Date + " " + main_schedule_df.Time)

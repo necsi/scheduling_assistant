@@ -1,51 +1,64 @@
-﻿Team,Domain,Timezone
-T1,Scientific,0.5
-T2,Scientific,1
-T3,Scientific,2
-T4,Scientific,3
-T5,Scientific,4
-T6,Scientific,5
-T7,Scientific,-1
-T8,Long Covid,-7
-T9,Long Covid,1
-T10,Long Covid,2
-T11,Long Covid,3
-T12,Community,12
-T13,Community,13
-T14,Community,14
-T15,Community,8
-T16,Long Covid,2
-T17,Long Covid,0
-T18,Long Covid,1
-T19,Long Covid,2
-T20,Long Covid,3
-T21,Long Covid,4
-T22,Long Covid,12
-T23,Long Covid,13
-T24,Long Covid,14
-T25,Long Covid,0
-T26,Long Covid,1
-T27,Long Covid,2
-T28,Long Covid,3
-T29,Community,8
-T30,Community,9
-T31,Community,10
-T32,Community,0
-T33,Community,0
-T34,Community,4
-T35,Community,6
-T36,Community,8
-T37,Community,2
-T38,Scientific,11
-T39,Scientific,12
-T40,Scientific,10
-T41,Scientific,0
-T42,Scientific,22
-T43,Scientific,23
-T44,Scientific,18
-T45,Scientific,16
-T46,Scientific,-7
-T47,Scientific,-8
-T48,Scientific,-2
-T49,Scientific,12
-T50,Scientific,13
+﻿Team Name,Timezone,Type,Superteam
+Team 1,-7,Science/Policy,A
+Team 2,-6,Science/Policy,A
+Team 3,-5,Science/Policy,A
+Team 4,-4,Community,B
+Team 5,-4,Community,B
+Team 6,-4,Community,C
+Team 7,-4,Community,C
+Team 8,-4,Community,D
+Team 9,-4,Community,D
+Team 10,-4,Science/Policy,E
+Team 11,-4,Science/Policy,E
+Team 12,-3,Science/Policy,F
+Team 13,-3,Science/Policy,F
+Team 14,-3,Science/Policy,F
+Team 15,1,Community,G
+Team 16,1,LongCovid,G
+Team 17,1,LongCovid,G
+Team 18,1,LongCovid,H
+Team 19,1,LongCovid,H
+Team 20,1,Science/Policy,I
+Team 21,1,Science/Policy,I
+Team 22,1,Science/Policy,J
+Team 23,1,Science/Policy,J
+Team 24,1,Science/Policy,K
+Team 25,2,Community,L
+Team 26,2,Community,L
+Team 27,2,Community,M
+Team 28,2,Community,M
+Team 29,2,Community,N
+Team 30,2,Community,N
+Team 31,2,Community,O
+Team 32,2,Community,O
+Team 33,2,Community,P
+Team 34,2,Community,P
+Team 35,2,Community,Q
+Team 36,2,Community,Q
+Team 37,2,Community,R
+Team 38,2,Community,R
+Team 39,2,Community,S
+Team 40,2,Community,S
+Team 41,2,Community,T
+Team 42,2,Healthcare,T
+Team 43,2,Science Policy,U
+Team 44,2,Science/Policy,U
+Team 45,2,Science/Policy,V
+Team 46,2,Science/Policy,V
+Team 47,2,Science/Policy,X
+Team 48,2,Science/Policy,X
+Team 49,2,Science/Policy,Y
+Team 50,2,Science/Policy,Y
+Team 51,3,Community,Z
+Team 52,3,Science/Policy,Z
+Team 53,3,Science/Policy,AA
+Team 54,3,Science/Policy,AA
+Team 55,4,Community,BB
+Team 56,5.5,Science/Policy,BB
+Team 57,10,Community,CC
+Team 58,10,Science/Policy,CC
+Team 59,10,Science/Policy,CC
+Team 60,,Community,
+Team 61,,Science/Policy,
+Team 62,,Science/Policy,
+Team 63,,Science/Policy,
