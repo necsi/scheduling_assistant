@@ -9,6 +9,7 @@ import csv
 import argparse
 
 
+
 def printMatches(all_matches,  team_df):
     # Print matches to command line
     print("Team\t\tDomain Mtg 1\tDomain Mtg 2\tMeeting 3\tMeeting 4")
@@ -102,7 +103,11 @@ def initAvailability(teams_df, main_schedule_df, tod_constraints, initial_hour, 
     # Returns time weights for each team, based on time of day constraints and main schedule constraints
     
     slots_per_hour = 2 # meetings available on the half hour
+    networking_name = 'Networking'
+
     main_availability = main_schedule_df['Events'].isna().astype(int).to_numpy() # Not available when an all teams event is scheduled
+    # main_availability = main_schedule_df['Events'] == networking_name
+    # main_availability = main_availability.astype(int).to_numpy() # Not available when an all teams event is scheduled
 
     availability = []
     timezones = teams_df['Timezone'].to_list()
@@ -122,11 +127,13 @@ def initAvailabilitySpeaker(speaker_df, main_schedule_df, tod_constraints, initi
     # Returns time weights for each team, based on time of day constraints and main schedule constraints
     
     slots_per_hour = 2 # meetings available on the half hour
-    skills_sessions_times = main_schedule_df['Events'].str[:6] == 'Skills' # Only available when a Skills event is scheuled
+    speaker_event_name = 'Skills' 
+    skills_sessions_times = main_schedule_df['Events'].str[:len(speaker_event_name)] == speaker_event_name # Only available when a Skills event is scheuled
     skills_sessions_times = skills_sessions_times.astype(int).to_numpy()
 
     availability = []
     timezones = speaker_df['Timezone'].to_list()
+    timezones = [int(tz) for tz in timezones]
     for tz in timezones:
         team_availability = np.roll(tod_constraints, -tz*slots_per_hour)
         team_availability = team_availability[initial_hour*slots_per_hour:]
@@ -309,7 +316,7 @@ def speakerSchedule(speakers_df, speaker_basic_availability, main_schedule_df, o
     # Find out what speakers are available for which Skills block, as defined in the initial schedule as Skills 1, Skills 2, etc.
     skills_sessions_times = main_schedule_df[main_schedule_df['Events'].str[:6] == 'Skills']
     skills_sessions_titles = pd.unique(skills_sessions_times['Events'])
-    output_columns = ['Speaker', 'Timezone', 'Topic']
+    output_columns = ['Speaker', 'Timezone', 'Title']
     for title in skills_sessions_titles:
         output_columns.append(title + ': Available')
         output_columns.append(title + ': Local Time')
@@ -319,9 +326,9 @@ def speakerSchedule(speakers_df, speaker_basic_availability, main_schedule_df, o
     for si in range(speakers_df.shape[0]):
 
         output_row = {
-                'Speaker': speakers_df['Speaker'].iloc[si], 
+                'Speaker': speakers_df['Name'].iloc[si], 
                 'Timezone': speakers_df['Timezone'].iloc[si], 
-                'Topic': speakers_df['Topic'].iloc[si]
+                'Title': speakers_df['Title'].iloc[si]
             }
         for title in skills_sessions_titles:
 
@@ -343,12 +350,15 @@ def speakerSchedule(speakers_df, speaker_basic_availability, main_schedule_df, o
             if(len(speaker_session_times) == len(session_timeslots)):
                 available = True
 
-
-            output_row[title + ': Available'] = available
+            if available:
+                output_row[title + ': Available'] = 'Yes'
+            else:
+                output_row[title + ': Available'] = ''
 
             suggested_time_utc = main_schedule_df['Datetime'].iloc[int(session_timeslots[0])]
             #row.append(suggested_time_utc.strftime('%m/%d/%Y %H:%M'))
-            timezone = speakers_df['Timezone'][si]
+            timezone = int(speakers_df['Timezone'][si])
+
             local_datetime = suggested_time_utc + pd.Timedelta(hours=int(timezone))
             local_datetime_str = local_datetime.strftime('%m/%d/%Y %H:%M')
             output_row[title + ': Local Time'] = local_datetime_str
@@ -368,7 +378,8 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     main_schedule_df['Datetime'] = pd.to_datetime(main_schedule_df.Date + " " + main_schedule_df.Time)
     main_schedule_df.drop(columns=['Date', 'Time', 'Session', 'Notes'], inplace=True)
     speakers_df = pd.read_csv(speakers_filename)
-
+    speakers_df = speakers_df[speakers_df['Status'] == 'confirmed']
+    speakers_df = speakers_df.reset_index(drop = True)
 
 
     # Given a csv with Teams, Domain, and Timezone, create a schedule 
@@ -446,10 +457,10 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--teams", type=str, default="input/teams.csv", help="Input teams spreadsheet")
+    parser.add_argument("--teams", type=str, default="input/teams_example.csv", help="Input teams spreadsheet")
     parser.add_argument("--tod", type=str, default="input/time_of_day_constraints.csv", help="Input time of day weights")
-    parser.add_argument("--main", type=str, default="input/init_schedule.csv", help="Input main events schedule")
-    parser.add_argument("--speakers", type=str, default="input/speakers.csv", help="Input speakers")
+    parser.add_argument("--main", type=str, default="input/init_schedule_example.csv", help="Input main events schedule")
+    parser.add_argument("--speakers", type=str, default="input/speakers_example.csv", help="Input speakers")
     parser.add_argument("--trials", type=int, default=10000, help="How many combinations to try when matching.")
     args = parser.parse_args()
 
