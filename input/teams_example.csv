@@ -1,64 +1,64 @@
-﻿Team Name,Timezone,Type,Superteam
-Team 1,-7,Science/Policy,A
-Team 2,-6,Science/Policy,A
-Team 3,-5,Science/Policy,A
-Team 4,-4,Community,B
-Team 5,-4,Community,B
-Team 6,-4,Community,C
-Team 7,-4,Community,C
-Team 8,-4,Community,D
-Team 9,-4,Community,D
-Team 10,-4,Science/Policy,E
-Team 11,-4,Science/Policy,E
-Team 12,-3,Science/Policy,F
-Team 13,-3,Science/Policy,F
-Team 14,-3,Science/Policy,F
-Team 15,1,Community,G
-Team 16,1,LongCovid,G
-Team 17,1,LongCovid,G
-Team 18,1,LongCovid,H
-Team 19,1,LongCovid,H
-Team 20,1,Science/Policy,I
-Team 21,1,Science/Policy,I
-Team 22,1,Science/Policy,J
-Team 23,1,Science/Policy,J
-Team 24,1,Science/Policy,K
-Team 25,2,Community,L
-Team 26,2,Community,L
-Team 27,2,Community,M
-Team 28,2,Community,M
-Team 29,2,Community,N
-Team 30,2,Community,N
-Team 31,2,Community,O
-Team 32,2,Community,O
-Team 33,2,Community,P
-Team 34,2,Community,P
-Team 35,2,Community,Q
-Team 36,2,Community,Q
-Team 37,2,Community,R
-Team 38,2,Community,R
-Team 39,2,Community,S
-Team 40,2,Community,S
-Team 41,2,Community,T
-Team 42,2,Healthcare,T
-Team 43,2,Science Policy,U
-Team 44,2,Science/Policy,U
-Team 45,2,Science/Policy,V
-Team 46,2,Science/Policy,V
-Team 47,2,Science/Policy,X
-Team 48,2,Science/Policy,X
-Team 49,2,Science/Policy,Y
-Team 50,2,Science/Policy,Y
-Team 51,3,Community,Z
-Team 52,3,Science/Policy,Z
-Team 53,3,Science/Policy,AA
-Team 54,3,Science/Policy,AA
-Team 55,4,Community,BB
-Team 56,5.5,Science/Policy,BB
-Team 57,10,Community,CC
-Team 58,10,Science/Policy,CC
-Team 59,10,Science/Policy,CC
-Team 60,,Community,
-Team 61,,Science/Policy,
-Team 62,,Science/Policy,
-Team 63,,Science/Policy,
+﻿Team Name,Main Contact,Email,Country,Timezone,Type,Superteam,Registered?,Logo Rcvd?,Photo(s)?,Video?,Notes
+Team 1,Contact 1,,,-7,Science/Policy,T1,,,,,
+Team 2,Contact 2,,,-7,Science/Policy,T1,1,,,,
+Team 3,Contact 3,,,-6,Community,T2,4,,,,
+Team 4,Contact 4,,,-6,Science/Policy,T2,14,,,,
+Team 5,Contact 5,,,-5,Community,T3,2,YES,2,,
+Team 6,Contact 6,,,-5,Science/Policy,T3,1,,,,
+Team 7,Contact 7,,,-4,Community,T4,1,,,,
+Team 8,Contact 8,,,-4,Community,T4,11,YES,1,YES,
+Team 9,Contact 9,,,-4,Community,T5,,,,,
+Team 10,Contact 10,,,-4,Community,T5,,,1,,
+Team 11,Contact 11,,,-4,Community,T6,1,,1,,
+Team 12,Contact 12,,,-4,Community,T6,1,,,,
+Team 13,Contact 13,,,-4,Science/Policy,T7,6,,1,,
+Team 14,Contact 14,,,-4,Science/Policy,T7,2,,1,,
+Team 15,Contact 15,,,-4,Science/Policy,T7,,,,,
+Team 16,Contact 16,,,-3,Science/Policy,T8,1,,,,
+Team 17,Contact 17,,,-3,Science/Policy,T8,1,,,,
+Team 18,Contact 18,,,-3,Science/Policy,T8,1,,,,
+Team 19,Contact 19,,,1,Community,T9,1,,,,
+Team 20,Contact 20,,,1,LongCovid,T10,3,YES,2,YES,
+Team 21,Contact 21,,,1,LongCovid,T10,,,,,
+Team 22,Contact 22,,,1,LongCovid,T11,,,,,
+Team 23,Contact 23,,,1,LongCovid,T11,,,,YES,
+Team 24,Contact 24,,,1,Science/Policy,T12,19,,,,
+Team 25,Contact 25,,,1,Science/Policy,T12,5,,,,
+Team 26,Contact 26,,,1,Science/Policy,T13,1,,,,
+Team 27,Contact 27,,,1,Science/Policy,T13,2,,,,
+Team 28,Contact 28,,,1,Science/Policy,T14,1,,,,
+Team 29,Contact 29,,,1,Science/Policy,T14,,,,,
+Team 30,Contact 30,,,2,Community,T9,1,,,,
+Team 31,Contact 31,,,2,Community,T15,1,,,YES,
+Team 32,Contact 32,,,2,Community,T15,1,,,,
+Team 33,Contact 33,,,2,Community,T16,2,YES,,YES,
+Team 34,Contact 34,,,2,Community,T16,2,,,,
+Team 35,Contact 35,,,2,Community,T17,4,,,,
+Team 36,Contact 36,,,2,Community,T17,1,,,,
+Team 37,Contact 37,,,2,Community,T18,5,YES,1,,
+Team 38,Contact 38,,,2,Community,T18,1,,,,
+Team 39,Contact 39,,,2,Community,T19,7,,,,
+Team 40,Contact 40,,,2,Community,T19,,,,,
+Team 41,Contact 41,,,2,Community,T20,7,,,,
+Team 42,Contact 42,,,2,Community,T20,1,YES,3,YES,
+Team 43,Contact 43,,,2,Community,T21,,,,,
+Team 44,Contact 44,,,2,Community,T21,1,YES,3,YES,
+Team 45,Contact 45,,,2,Community,T22,1,,,,
+Team 46,Contact 46,,,2,Community,T22,16,YES,3,,
+Team 47,Contact 47,,,2,Science/Policy,T23,,,,,
+Team 48,Contact 48,,,2,Science/Policy,T23,2,YES,2,,
+Team 49,Contact 49,,,2,Science/Policy,T24,,,,,
+Team 50,Contact 50,,,2,Science/Policy,T24,1,,1,,
+Team 51,Contact 51,,,2,Science/Policy,T25,1,,1,,
+Team 52,Contact 52,,,2,Science/Policy,T25,7,YES,3,,
+Team 53,Contact 53,,,2,Science/Policy,T26,1,YES,0,,
+Team 54,Contact 54,,,2,Science/Policy,T26,3,,,,
+Team 55,Contact 55,,,2,Science/Policy,T26,2,,,,
+Team 56,Contact 56,,,3,Community,T27,,,,,
+Team 57,Contact 57,,,3,Science/Policy,T27,,,,,
+Team 58,Contact 58,,,3,Science/Policy,T28,1,YES,1,,
+Team 59,Contact 59,,,3,Science/Policy,T28,,,,,
+Team 60,Contact 60,,,5.5,Science/Policy,T28,1,,1,,
+Team 61,Contact 61,,,10,Community,T29,1,,,,
+Team 62,Contact 62,,,10,Science/Policy,T29,1,,1,,
+Team 63,Contact 63,,,10,Science/Policy,T29,2,,2,,

@@ -289,7 +289,7 @@ def matchPairs(pairwise_availability, already_matched = None, trials=1000):
     # Output: 1d matches: match[team1] = team2
 
     max_possible_score = pairwise_availability.shape[0] // 2
-    current_best_score = 0
+    current_best_score = -100
     current_output = np.full((pairwise_availability.shape[0]), -1)
     if already_matched is not None:
         already_matched = np.array(already_matched)
@@ -406,7 +406,7 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     tod_constraints_df = pd.read_csv(time_of_day_constraints_filename)
     main_schedule_df = pd.read_csv(main_schedule_filename)
     main_schedule_df['Datetime'] = pd.to_datetime(main_schedule_df.Date + " " + main_schedule_df.Time)
-    main_schedule_df.drop(columns=['Date', 'Time', 'Session', 'Notes'], inplace=True)
+    main_schedule_df.drop(columns=['Date', 'Time', 'Session', 'Notes', 'Speakers'], inplace=True)
     speakers_df = pd.read_csv(speakers_filename)
     speakers_df = speakers_df[speakers_df['Status'] == 'confirmed']
     speakers_df = speakers_df.reset_index(drop = True)
@@ -438,6 +438,7 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
 
 
 
+
     # Use matching domains
     domain_availability = domainAvailability(teams_df)
     # Multiplication creates the constraint (zero if either are zero)
@@ -455,9 +456,11 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
 
 
     # # Second meeting (matched domain)
+
     pairwise_availability = updateAvailability(pairwise_availability, matches1)
     matches2, score2 = matchPairs(pairwise_availability, all_matches, trials=trials)
     print('match 2 score: ', score2)
+
     all_matches.append(matches2)
 
 
@@ -489,7 +492,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--teams", type=str, default="input/teams_example.csv", help="Input teams spreadsheet")
     parser.add_argument("--tod", type=str, default="input/time_of_day_constraints.csv", help="Input time of day weights")
-    parser.add_argument("--main", type=str, default="input/init_schedule_example.csv", help="Input main events schedule")
+    parser.add_argument("--init", type=str, default="input/init_schedule_example.csv", help="Input main events schedule")
     parser.add_argument("--speakers", type=str, default="input/speakers_example.csv", help="Input speakers")
     parser.add_argument("--trials", type=int, default=10000, help="How many combinations to try when matching.")
     
@@ -499,7 +502,7 @@ if __name__ == '__main__':
 
     teams_filename = args.teams
     tod_filename = args.tod
-    main_filename = args.main
+    main_filename = args.init
     speakers_filename = args.speakers
     trials = args.trials
  
