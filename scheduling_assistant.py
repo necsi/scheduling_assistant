@@ -469,13 +469,16 @@ def main(teams_filename, time_of_day_constraints_filename, main_schedule_filenam
     non_domain_availability = nonDomainAvailability(teams_df)
     
     # we can start over because inherently no matching domain pair can be a non-matching pair
-    pairwise_availability = doodle_pairwise_availability*non_domain_availability
+    pairwise_availability = doodle_pairwise_availability*non_domain_availability # <-- no longer trying to match anti-domains
+    pairwise_availability = updateAvailability(pairwise_availability, matches2)
     matches3, score3 = matchPairs(pairwise_availability, all_matches, trials=trials)
     print('match 3 score: ', score3)
     all_matches.append(matches3)
 
     # # Fourth meeting (non-matching domains)
+    pairwise_availability = doodle_pairwise_availability
     pairwise_availability = updateAvailability(pairwise_availability, matches3)
+    
     matches4, score4 = matchPairs(pairwise_availability, all_matches, trials=trials)
     print('match 4 score: ', score4)
     all_matches.append(matches4)
